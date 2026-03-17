@@ -14,6 +14,12 @@ app.use('/api/wall', wallRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
-app.listen(PORT, () => {
-  console.log(`Lucky Eunwoo Cafe backend running on port ${PORT}`);
-});
+// Export for Vercel serverless
+module.exports = app;
+
+// Only bind a port when running locally (node server.js)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Lucky Eunwoo Cafe backend running on port ${PORT}`);
+  });
+}
