@@ -1,0 +1,292 @@
+{
+  "info": {
+    "name": "Lucky Eunwoo Cafe – Wall API",
+    "_postman_id": "lucky-eunwoo-cafe-wall-api",
+    "description": "All endpoints for the Lucky Eunwoo Cafe wishing wall backend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "itemId",
+      "value": "PASTE_FIRESTORE_ID_HERE",
+      "type": "string",
+      "description": "Set this after running any POST request – copy the returned id field"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Verify the server is running. Does not require Firebase."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "{ \"status\": \"ok\" }"
+        }
+      ]
+    },
+    {
+      "name": "Wall",
+      "item": [
+        {
+          "name": "Get All Wall Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/wall",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall"]
+            },
+            "description": "Returns all sticky notes, stickers, and polaroids ordered by createdAt ascending."
+          }
+        },
+        {
+          "name": "Add Sticky Note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('itemId', json.id);",
+                  "  console.log('Saved itemId:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"author\": \"Jewelry\",\n  \"text\": \"Happy Birthday Eunwoo! ⭐\",\n  \"color\": \"#fce4ec\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wall/sticky",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall", "sticky"]
+            },
+            "description": "Adds a sticky note. The returned `id` is auto-saved to the `itemId` collection variable."
+          }
+        },
+        {
+          "name": "Add Sticky Note – Missing Text (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"author\": \"Jewelry\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wall/sticky",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall", "sticky"]
+            },
+            "description": "Should return 400 – text is required."
+          }
+        },
+        {
+          "name": "Add Sticker",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('itemId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"src\": \"images/sticker1.png\",\n  \"size\": 90\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wall/sticker",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall", "sticker"]
+            },
+            "description": "Adds a sticker by src path."
+          }
+        },
+        {
+          "name": "Add Sticker – Missing Src (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wall/sticker",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall", "sticker"]
+            },
+            "description": "Should return 400 – src is required."
+          }
+        },
+        {
+          "name": "Upload Polaroid (Image)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('itemId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "Select any JPEG/PNG/GIF/WebP image (max 5 MB)"
+                },
+                { "key": "author",  "value": "Jewelry",          "type": "text" },
+                { "key": "caption", "value": "Eunwoo my star ⭐", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wall/polaroid",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall", "polaroid"]
+            },
+            "description": "Upload an image file. It is stored in Firebase Storage and a public URL is saved to Firestore."
+          }
+        },
+        {
+          "name": "Upload Polaroid – No File (400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "author", "value": "Jewelry", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wall/polaroid",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall", "polaroid"]
+            },
+            "description": "Should return 400 – image file is required."
+          }
+        },
+        {
+          "name": "Update Item Position",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"x\": 350,\n  \"y\": 420\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wall/{{itemId}}/position",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall", "{{itemId}}", "position"]
+            },
+            "description": "Updates the x/y canvas position of an item (called on drag-end). Uses the `itemId` variable."
+          }
+        },
+        {
+          "name": "Update Position – Invalid Body (400)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"x\": 100 }",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wall/{{itemId}}/position",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall", "{{itemId}}", "position"]
+            },
+            "description": "Should return 400 – x and y must be numbers."
+          }
+        },
+        {
+          "name": "Delete Item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/wall/{{itemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall", "{{itemId}}"]
+            },
+            "description": "Deletes the item. If it is a polaroid, also removes the image from Firebase Storage."
+          }
+        },
+        {
+          "name": "Delete Item – Not Found (404)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/wall/nonexistent_id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wall", "nonexistent_id"]
+            },
+            "description": "Should return 404 – Item not found."
+          }
+        }
+      ]
+    }
+  ]
+}
