@@ -5,7 +5,7 @@ const cors    = require('cors');
 const wallRoutes = require('./routes/wall');
 
 const app  = express();
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
 app.use(express.json());
