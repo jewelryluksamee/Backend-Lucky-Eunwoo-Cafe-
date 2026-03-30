@@ -5,6 +5,20 @@ const upload = require('../middleware/upload');
 
 const router = express.Router();
 
+let wallCache = {
+  data: null,
+  lastFetch: 0
+};
+const CACHE_TTL_MS = 5000; // 5 seconds local fallback cache
+
+// Middleware to invalidate in-memory cache on mutations
+router.use((req, res, next) => {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    wallCache.lastFetch = 0;
+  }
+  next();
+});
+
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 function randomPos() {
@@ -39,49 +53,32 @@ async function uploadToStorage(buffer, mimetype, originalname) {
 // Returns all wall items ordered by creation time (oldest first)
 router.get('/', async (_req, res) => {
   try {
+    // 1. Edge Caching directive (CDN level)
+    res.setHeader('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=10');
+
+    // 2. In-Memory Caching fallback (Lambda level)
+    const now = Date.now();
+    if (wallCache.data && (now - wallCache.lastFetch < CACHE_TTL_MS)) {
+      return res.json({ success: true, items: wallCache.data, cached: true });
+    }
+
     const snapshot = await db
       .collection(COLLECTION)
       .orderBy('createdAt', 'asc')
       .get();
 
     const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Update local cache
+    wallCache.data = items;
+    wallCache.lastFetch = now;
+
     res.json({ success: true, items });
   } catch (err) {
     console.error('GET /wall error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
-// ─── POST /api/wall/sticky ───────────────────────────────────────────────────
-// Body: { author, text, color, x?, y?, rot? }
-router.post('/sticky', async (req, res) => {
-  try {
-    const { author, text, color, x, y, rot } = req.body;
-
-    if (!text?.trim()) {
-      return res.status(400).json({ success: false, error: 'text is required' });
-    }
-
-    const pos = randomPos();
-    const data = {
-      type:      'sticky',
-      author:    author || 'Guest',
-      text:      text.trim().slice(0, 200),
-      color:     color || '#fffde0',
-      x:         typeof x === 'number' ? x : pos.x,
-      y:         typeof y === 'number' ? y : pos.y,
-      rot:       typeof rot === 'number' ? rot : (Math.random() * 12 - 6),
-      createdAt: new Date().toISOString(),
-    };
-
-    const docRef = await db.collection(COLLECTION).add(data);
-    res.status(201).json({ success: true, id: docRef.id, ...data });
-  } catch (err) {
-    console.error('POST /wall/sticky error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
 // ─── POST /api/wall/sticker ──────────────────────────────────────────────────
 // Body: { src, x?, y?, size?, rot? }
 router.post('/sticker', async (req, res) => {
